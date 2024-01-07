@@ -1,0 +1,6 @@
+keys.py
+__pycache__
+backups
+*.ipynb
+*.db
+*.csv
