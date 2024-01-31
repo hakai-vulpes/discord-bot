@@ -10,6 +10,7 @@ from nextcord.ext import commands
 import re, asyncio, datetime
 from unidecode import unidecode
 from extras import *
+from helpers.eventmanager import *
 
 
 class Calendario(commands.Cog):
@@ -47,6 +48,7 @@ class Calendario(commands.Cog):
         print("Comando calendario")
         titlelength = 27
         #Sacar los datos de la DB ordenados
+        await actualizarEventosExtra(interaction, currentWorkingDirectory + "database.db")
         calendario = await calendarioOrdenado(currentWorkingDirectory + "database.db")
 
         #Generar embed y normalizar los recuadros
@@ -169,9 +171,7 @@ class Calendario(commands.Cog):
         await deleteEvent(interaction.guild, evento)
         await interaction.response.send_message(f"Evento eliminado ({evento})")
         evento.update({"Inicio": await strDateToInt(evento["Inicio"]),"Final": await strDateToInt(evento["Final"])})
-        with sql.connect(currentWorkingDirectory + "database.db") as db:
-            cursor = db.cursor()
-            cursor.execute(f"DELETE FROM Events WHERE {await parseToSQLParams(evento, ' AND ')}")
+        await removeEventFromDB(evento, currentWorkingDirectory + "database.db")
 
         await actualizarEventosExtra(interaction, currentWorkingDirectory + "database.db")
 

@@ -6,6 +6,7 @@ import nextcord
 from nextcord import Interaction, SlashOption
 from nextcord.ext import commands
 
+from helpers.alumnos import alumno
 from extras import *
 
 class Alumnos(commands.Cog):
