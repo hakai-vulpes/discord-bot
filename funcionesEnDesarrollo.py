@@ -15,11 +15,34 @@ intents.members = True
 bot = commands.Bot(command_prefix = "!", intents =  intents)
 
 guildList = [473511544454512642]
+
+import smtplib, ssl, secrets
+from email.message import EmailMessage
+
+emailPattern = re.compile(r"^[a-zA-Z0-9_.+-]+@alumnos.upm.es$")
+def validate_email_syntax(email):
+    return re.match(emailPattern, email) is not None
     
+async def sendConfirmationEmail(address, token):
+    subject = "Email Confirmation"
+    body = f"Este es tu código de confirmación: {token}"
+    email = EmailMessage()
+    email['From'], email['To'], email['Subject'] = EMAIL_ADDR, address, subject
+    email.set_content(body)
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+        smtp.login(EMAIL_ADDR, EMAIL_PASS)
+        smtp.sendmail(EMAIL_ADDR, address, email.as_string())
+
 @commands.has_permissions(manage_messages=True)
-@bot.slash_command(name = "example", description = 'Example',  guild_ids=guildList)
-async def example(interaction: nextcord.Interaction):
-    pass
+@bot.slash_command(name = "correo", description = 'Correo',  guild_ids=guildList)
+async def correo(interaction: nextcord.Interaction, email: str = ""):
+
+    if not validate_email_syntax(email):
+        return await interaction.response.send_message("Sintaxis de correo incorrecta.")
+    token = secrets.token_urlsafe(6)
+    await interaction.response.send_modal(EmailVerificationModal(token))
+    await sendConfirmationEmail(email, token)
 
 @bot.event
 async def on_ready():

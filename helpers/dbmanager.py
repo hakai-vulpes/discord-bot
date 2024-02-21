@@ -1,7 +1,7 @@
 from extras import *
 
 @logs
-async def calendarioOrdenado(dbpath: str):
+def calendarioOrdenado(dbpath: str):
     with sql.connect(dbpath) as db:
         cursor = db.cursor()
         cursor.execute("SELECT * FROM Events ORDER BY Año, Mes, Día, Inicio, Final")
@@ -10,13 +10,13 @@ async def calendarioOrdenado(dbpath: str):
     raw = [{head:info for head, info in zip(header, eventTuple)} for eventTuple in raw]
     data = []
     for event in raw:
-        event["Inicio"] = await intToStrDate(event["Inicio"])
-        event["Final"] = await intToStrDate(event["Final"])
+        event["Inicio"] = intToStrDate(event["Inicio"])
+        event["Final"] = intToStrDate(event["Final"])
         data.append(event)
     return data
 
 @logs
-async def getCalendarioFromDB(dbpath: str) -> list[dict]:
+def getCalendarioFromDB(dbpath: str) -> list[dict]:
     with sql.connect(dbpath) as db:
         cursor = db.cursor()
         cursor.execute("SELECT * FROM Events")
@@ -25,13 +25,13 @@ async def getCalendarioFromDB(dbpath: str) -> list[dict]:
     raw = [{head:info for head, info in zip(header, eventTuple)} for eventTuple in raw]
     data = []
     for event in raw:
-        event["Inicio"] = await intToStrDate(event["Inicio"])
-        event["Final"] = await intToStrDate(event["Final"])
+        event["Inicio"] = intToStrDate(event["Inicio"])
+        event["Final"] = intToStrDate(event["Final"])
         data.append(event)
     return data
 
 @logs
-async def putEventInDB(event: dict, dbpath: str) -> bool:
+def putEventInDB(event: dict, dbpath: str) -> bool:
     try:
         with sql.connect(dbpath) as db:
             cursor = db.cursor()
@@ -41,17 +41,17 @@ async def putEventInDB(event: dict, dbpath: str) -> bool:
     except: return False
 
 @logs
-async def removeEventFromDB(event: dict, dbpath: str) -> bool:
+def removeEventFromDB(event: dict, dbpath: str) -> bool:
     try:
         with sql.connect(dbpath) as db:
             cursor = db.cursor()
-            cursor.execute(f"DELETE FROM Events WHERE ({await parseToSQLParams(event, ' AND ')})")
+            cursor.execute(f"DELETE FROM Events WHERE ({parseToSQLParams(event, ' AND ')})")
             db.commit()
         return True
     except: return False
 
 @logs
-async def actualizarDB(dbpath: str) -> None:
+def actualizarDB(dbpath: str) -> None:
     now = datetime.datetime.now()
     print(now.year, now.month, now.day)
     with sql.connect(dbpath) as db:

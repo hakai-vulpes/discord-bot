@@ -1,5 +1,7 @@
-import re, os, datetime, copy, functools, nextcord
+import re, os, datetime, copy, functools, nextcord, pytz
+from typing import Optional
 import sqlite3 as sql
+from nextcord.utils import MISSING
 from unidecode import unidecode
 from keys import *
 
@@ -65,19 +67,19 @@ def backup(load: bool = False) -> bool:
     print("Backup was created")
     return True
 
-async def intToStrDate(integer: int) -> str:
+def intToStrDate(integer: int) -> str:
     integer = str(integer)
-    return f"{'0'*(max(2-len(integer[:-2]),0))}{integer[:-2]}:{integer[-2:]}" if len(integer) > 2 else f"00:{integer}"
-async def strDateToInt(strDate: str) -> int:
+    return f"{'0'*(max(2-len(integer[:-2]),0))}{integer[:-2]}:{integer[-2:]}" if len(integer) > 2 else f"00:{'0'*(2-len(integer))}{integer}"
+def strDateToInt(strDate: str) -> int:
     return int(strDate[:-3] + strDate[-2:]) if strDate is not None else None
 
-async def parseToSQLParams(evento: dict, union: str = ", ") -> str:
+def parseToSQLParams(evento: dict, union: str = ", ") -> str:
     def helper(param):
         return f"'{param}'" if isinstance(param, str) else param
     return union.join(f"{element[0]} = {helper(element[1])}" for element in evento.items() if element[1] is not None)
 
 # Week calculator
-async def fecha(*args) -> int:
+def fecha(*args) -> int:
     if len(args) != 3:
         raise Exception(f"Expected 3 numbers for a date not {args}")
     followingDate = [arg for arg in args]
@@ -115,7 +117,7 @@ async def fecha(*args) -> int:
     weeks = dayCount // 7 + 1
     return(weeks)
 
-async def procesarfecha(input: str) -> list[int]:
+def procesarfecha(input: str) -> list[int]:
     try:
         fecha = [int(string) for string in re.split(r"[^\d]", input) if string]
         now = datetime.datetime.now()
@@ -133,7 +135,7 @@ async def procesarfecha(input: str) -> list[int]:
         return fecha
     except: return False
 
-async def parseToDict(lista: list) -> dict:
+def parseToDict(lista: list) -> dict:
     return {clave:valor for clave, valor in zip(header, lista)}
 
 class AnnouncementView(nextcord.ui.View):
@@ -155,3 +157,17 @@ class AnnouncementView(nextcord.ui.View):
         for item in self.children:
             item.disabled = True
         if self.message: await self.message.edit(content="(Esta votación ha finalizado)", view=self)
+
+class EmailVerificationModal(nextcord.ui.Modal):
+    def __init__(self, token) -> None:
+        super().__init__('Email Verification', timeout=90)
+        self.token = token
+
+        self.verificationField = nextcord.ui.TextInput('Código de Verificación', max_length=30, required=True, placeholder="Introduce el código de verficación enviado a tu correo.")
+        self.add_item(self.verificationField)
+
+    async def callback(self, interaction: nextcord.Interaction):
+        if not self.verificationField.value == self.token:
+            return await interaction.response.send_message("Intento de verificación fallido")
+        interaction.user
+        return await interaction.response.send_message("Verificación completada")

@@ -25,20 +25,22 @@ class Calendario(commands.Cog):
         else: ubicación += " - ETSISI - UPM"
         #Input handler
         try:
-            if not (fecha := await procesarfecha(fecha)):
+            if not (fecha := procesarfecha(fecha)):
                 await interaction.response.send_message(error("Fecha en formato incorrecto: <DD/MM/YY>"))
                 return False
         except:
             await interaction.response.send_message(error("Error de argumentos"))
             return False
-        hora_inicio, hora_final = await strDateToInt(hora_inicio), await strDateToInt(hora_final)
+        hora_inicio, hora_final = strDateToInt(hora_inicio), strDateToInt(hora_final)
         
         evento = [categoría, descripción, fecha[0], fecha[1], fecha[2], hora_inicio, hora_final, ubicación]
-        evento = await parseToDict(evento)
-        if not await putEventInDB(evento, currentWorkingDirectory + "database.db"):
+        evento = parseToDict(evento)
+        if not putEventInDB(evento, currentWorkingDirectory + "database.db"):
             await interaction.response.send_message("Ha habido un error, puede que este evento ya exista...")
             return False
         
+        evento['Inicio'], evento['Final'] = intToStrDate(evento["Inicio"]), intToStrDate(evento['Final'])
+        print("Horas:", evento['Inicio'], evento['Final'])
         await interaction.response.send_message(f"Evento añadido ({evento})")
         await createEvent(interaction.guild, evento)
         await actualizarEventosExtra(interaction, currentWorkingDirectory + "database.db")
@@ -48,8 +50,7 @@ class Calendario(commands.Cog):
         print("Comando calendario")
         titlelength = 27
         #Sacar los datos de la DB ordenados
-        await actualizarEventosExtra(interaction, currentWorkingDirectory + "database.db")
-        calendario = await calendarioOrdenado(currentWorkingDirectory + "database.db")
+        calendario = calendarioOrdenado(currentWorkingDirectory + "database.db")
 
         #Generar embed y normalizar los recuadros
         calendarioEmbed = nextcord.Embed(title="***CALENDARIO DE EVENTOS***", color=0xff6700)
@@ -57,13 +58,13 @@ class Calendario(commands.Cog):
         for thrice, evento in enumerate(calendario):
             print(evento["Inicio"], evento["Final"])
             embedValue = ""
-            if await fecha(evento["Día"],evento["Mes"],evento["Año"]) == 1:
+            if fecha(evento["Día"],evento["Mes"],evento["Año"]) == 1:
                 embedValue = f'''```ml\n[{splitTime(evento["Inicio"])}-{splitTime(evento["Final"])}]\n  {unidecode(evento["Descripción"].title())} ({weekdays[datetime.datetime(evento["Año"],evento["Mes"],evento["Día"]).weekday()]})```'''
-            elif await fecha(evento["Día"],evento["Mes"],evento["Año"]) == 2:
+            elif fecha(evento["Día"],evento["Mes"],evento["Año"]) == 2:
                 embedValue = f'''```prolog\n[{splitTime(evento["Inicio"])}-{splitTime(evento["Final"])}]\n  {unidecode(evento["Descripción"].title())} ({weekdays[datetime.datetime(evento["Año"],evento["Mes"],evento["Día"]).weekday()]})```'''
-            elif await fecha(evento["Día"],evento["Mes"],evento["Año"]) == 3:
+            elif fecha(evento["Día"],evento["Mes"],evento["Año"]) == 3:
                 embedValue = f'''```asciidoc\n[{splitTime(evento["Inicio"])}-{splitTime(evento["Final"])}]\n>  {evento["Descripción"]} ({weekdays[datetime.datetime(evento["Año"],evento["Mes"],evento["Día"]).weekday()]}) :: ```'''
-            elif await fecha(evento["Día"],evento["Mes"],evento["Año"]) > 3:
+            elif fecha(evento["Día"],evento["Mes"],evento["Año"]) > 3:
                 embedValue = f'''```md\n[{splitTime(evento["Inicio"])}-{splitTime(evento["Final"])}]\n> {evento["Descripción"]} ({weekdays[datetime.datetime(evento["Año"],evento["Mes"],evento["Día"]).weekday()]})```'''
             else:
                 embedValue = f'''```ini\n#[{splitTime(evento["Inicio"])}-{splitTime(evento["Final"])}]\n #{evento["Descripción"]} ({weekdays[datetime.datetime(evento["Año"],evento["Mes"],evento["Día"]).weekday()]})```'''
@@ -129,6 +130,7 @@ class Calendario(commands.Cog):
                 calendarioEmbed.add_field(name="\u00ad", value="\u00ad", inline = False)
 
         await interaction.response.send_message(embed = calendarioEmbed)
+        await actualizarEventosExtra(interaction, currentWorkingDirectory + "database.db")
 
     @commands.has_any_role(staffRoles)
     @nextcord.slash_command(name = 'modificar', description = 'Modifica un evento del calendario', guild_ids = guildList) # help = 'Uso: !modificar <índice (cronológicamente)> "<categoría>" "<descripción>" <DD/MM/AAAA> <hh:mm-hh:mm>\nEjemplo: !modificar 3 - - 23/10/2023 9:00-11:00, para modificar sólo fecha y hora.')
@@ -138,40 +140,40 @@ class Calendario(commands.Cog):
         #Input handler
         if ubicación is not None: ubicación += " - ETISISI - UPM"
         if fecha is not None:
-            if not (fecha := await procesarfecha(fecha)):
+            if not (fecha := procesarfecha(fecha)):
                 await interaction.response.send_message(error("Fecha en formato incorrecto: <DD/MM/YY>"))
                 return False
         else: fecha = [None, None, None]
 
         índice -= 1
         args = [categoría, descripción, fecha[0], fecha[1], fecha[2], hora_inicio, hora_final, ubicación]
-        args = await parseToDict(args)
-        evento = (await calendarioOrdenado(currentWorkingDirectory + "database.db"))[índice]
+        args = parseToDict(args)
+        evento = (calendarioOrdenado(currentWorkingDirectory + "database.db"))[índice]
         newEvent = {clave:argumento or valor for clave, argumento, valor  in zip(header, args.values(), evento.values())}
 
         await editEvent(interaction.guild, evento, newEvent)
-        args.update({"Inicio": await strDateToInt(args["Inicio"]),"Final": await strDateToInt(args["Final"])})
-        evento.update({"Inicio": await strDateToInt(evento["Inicio"]),"Final": await strDateToInt(evento["Final"])})
+        args.update({"Inicio": strDateToInt(args["Inicio"]),"Final": strDateToInt(args["Final"])})
+        evento.update({"Inicio": strDateToInt(evento["Inicio"]),"Final": strDateToInt(evento["Final"])})
         with sql.connect(currentWorkingDirectory + "database.db") as db:
             cursor = db.cursor()
-            cursor.execute(f"UPDATE Events SET {await parseToSQLParams(args)} WHERE {await parseToSQLParams(evento, ' AND ')}")
+            cursor.execute(f"UPDATE Events SET {parseToSQLParams(args)} WHERE {parseToSQLParams(evento, ' AND ')}")
 
-        await actualizarEventosExtra(interaction, currentWorkingDirectory + "database.db")
         #Feedback
         await interaction.response.send_message(f"Evento modificado ({newEvent})")
+        await actualizarEventosExtra(interaction, currentWorkingDirectory + "database.db")
 
     @commands.has_any_role(staffRoles)
     @nextcord.slash_command(name = 'eliminar', description = 'Elimina un evento del calendario', guild_ids = guildList) # help = 'Uso: !eliminar <índice (cronológicamente)>\nEjemplo: !eliminar 3, para eliminar el tercer evento más cercano')
     async def eliminar(self, interaction: Interaction, índice: int):
         print("Comando eliminar")
         índice -= 1
-        evento = (await calendarioOrdenado(currentWorkingDirectory + "database.db"))[índice]
+        evento = (calendarioOrdenado(currentWorkingDirectory + "database.db"))[índice]
                 
         #Eliminar el evento
         await deleteEvent(interaction.guild, evento)
         await interaction.response.send_message(f"Evento eliminado ({evento})")
-        evento.update({"Inicio": await strDateToInt(evento["Inicio"]),"Final": await strDateToInt(evento["Final"])})
-        await removeEventFromDB(evento, currentWorkingDirectory + "database.db")
+        evento.update({"Inicio": strDateToInt(evento["Inicio"]),"Final": strDateToInt(evento["Final"])})
+        removeEventFromDB(evento, currentWorkingDirectory + "database.db")
 
         await actualizarEventosExtra(interaction, currentWorkingDirectory + "database.db")
 
@@ -188,7 +190,7 @@ class Calendario(commands.Cog):
     @commands.has_any_role(staffRoles)
     @nextcord.slash_command(name = 'actualizareventos', description = 'Actualiza todos los eventos de Discord con los eventos del calendario', guild_ids = guildList)
     async def actualizareventos(self, interaction: Interaction):
-        calendarioLista = await getCalendarioFromDB(currentWorkingDirectory + "database.db")
+        calendarioLista = getCalendarioFromDB(currentWorkingDirectory + "database.db")
         eventos = interaction.guild.scheduled_events
         for evento in eventos:
             if not await isEventInCalendar(evento, calendarioLista):
@@ -203,7 +205,7 @@ class Calendario(commands.Cog):
     @nextcord.slash_command(name = "anuncio", description = 'Anuncio con votación asociada',  guild_ids=guildList)
     async def announcement(self, interaction: nextcord.Interaction, title: str, text: str, opciones: str, timeout: float = None):
         if timeout is not None: timeout = float(timeout)
-        opciones = opciones.split("/")
+        opciones = opciones.split(",")
         opcionesS = "\n"
         for opcion in opciones:
             opcionesS += f"\n{opcion}: 0 voto/s"
