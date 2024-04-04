@@ -4,3 +4,4 @@ backups
 *.ipynb
 *.db
 *.csv
+*.log
