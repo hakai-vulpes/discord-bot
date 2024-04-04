@@ -1,7 +1,7 @@
 from extras import *
 
-@logs
-def calendarioOrdenado(dbpath: str):
+@debug
+def calendarioOrdenado(dbpath: str) -> list[dict]:
     with sql.connect(dbpath) as db:
         cursor = db.cursor()
         cursor.execute("SELECT * FROM Events ORDER BY Año, Mes, Día, Inicio, Final")
@@ -15,7 +15,7 @@ def calendarioOrdenado(dbpath: str):
         data.append(event)
     return data
 
-@logs
+@debug
 def getCalendarioFromDB(dbpath: str) -> list[dict]:
     with sql.connect(dbpath) as db:
         cursor = db.cursor()
@@ -30,7 +30,7 @@ def getCalendarioFromDB(dbpath: str) -> list[dict]:
         data.append(event)
     return data
 
-@logs
+@debug
 def putEventInDB(event: dict, dbpath: str) -> bool:
     try:
         with sql.connect(dbpath) as db:
@@ -40,7 +40,7 @@ def putEventInDB(event: dict, dbpath: str) -> bool:
         return True
     except: return False
 
-@logs
+@debug
 def removeEventFromDB(event: dict, dbpath: str) -> bool:
     try:
         with sql.connect(dbpath) as db:
@@ -50,10 +50,9 @@ def removeEventFromDB(event: dict, dbpath: str) -> bool:
         return True
     except: return False
 
-@logs
+@debug
 def actualizarDB(dbpath: str) -> None:
     now = datetime.datetime.now()
-    print(now.year, now.month, now.day)
     with sql.connect(dbpath) as db:
         cursor = db.cursor()
         cursor.execute(f"DELETE FROM Events WHERE Año < {now.year} OR (Año = {now.year} AND (Mes < {now.month} OR (Mes = {now.month} AND Día < {now.day})))")

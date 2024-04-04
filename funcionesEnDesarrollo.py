@@ -34,6 +34,21 @@ async def sendConfirmationEmail(address, token):
         smtp.login(EMAIL_ADDR, EMAIL_PASS)
         smtp.sendmail(EMAIL_ADDR, address, email.as_string())
 
+def isPrime(n: int) -> bool:
+    for i in range(2,n):
+        if n % i == 0: return False
+    return True
+
+@commands.has_permissions(manage_messages=True)
+@bot.slash_command(name = "lol", description = 'Correo',  guild_ids=guildList)
+async def lol(interaction: nextcord.Interaction, num: int = 0):
+    await interaction.response.defer()
+    if isPrime(num):
+        await interaction.followup.send('It is prime')
+        return True
+    await interaction.followup.send("It isn't prime")
+    return False
+
 @commands.has_permissions(manage_messages=True)
 @bot.slash_command(name = "correo", description = 'Correo',  guild_ids=guildList)
 async def correo(interaction: nextcord.Interaction, email: str = ""):
@@ -43,6 +58,7 @@ async def correo(interaction: nextcord.Interaction, email: str = ""):
     token = secrets.token_urlsafe(6)
     await interaction.response.send_modal(EmailVerificationModal(token))
     await sendConfirmationEmail(email, token)
+    print(interaction)
 
 @bot.event
 async def on_ready():

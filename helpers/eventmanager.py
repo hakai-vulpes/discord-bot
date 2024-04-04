@@ -75,8 +75,8 @@ async def deleteEvent(guild: nextcord.Guild, event: dict) -> bool:
         return True
     return False
 
-
 async def editEvent(guild: nextcord.Guild, event: dict, newEvent: dict) -> bool:
+    print(newEvent)
     a = await fetchEvent(guild, event)
     if a: 
         name, description, location = newEvent["Categoría"], newEvent["Descripción"], newEvent["Ubicación"]

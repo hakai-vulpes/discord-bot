@@ -16,6 +16,7 @@ class General(commands.Cog):
 
     @nextcord.slash_command(name = 'hello', description = "Probando slash commands", guild_ids = guildList)
     async def hello(self, interaction: Interaction):
+        snitch.info(f"por {interaction.user.name}")
         print("Comando hello 1")
         await interaction.response.send_message("Buenas pendejo :P")
     

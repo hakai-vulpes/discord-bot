@@ -1,12 +1,25 @@
-import re, os, datetime, copy, functools, nextcord, pytz
+import re, os, datetime, copy, functools, nextcord, pytz, logging
 from typing import Optional
 import sqlite3 as sql
 from nextcord.utils import MISSING
 from unidecode import unidecode
 from keys import *
 
+
+snitch = logging.getLogger("snitch")
+snitch.setLevel(logging.INFO)
+handler = logging.FileHandler("logs.log", "a")
+handler.setFormatter(logging.Formatter("%(asctime)s: /%(funcName)s %(message)s"))
+snitch.addHandler(handler)
+
+debugger = logging.getLogger("debugger")
+debugger.setLevel(logging.DEBUG)
+handler = logging.Handler()
+handler.setFormatter(logging.Formatter("/%(funcName)s: %(message)s"))
+debugger.addHandler(handler)
+
 header = ["Categoría", "Descripción", "Día", "Mes", "Año", "Inicio", "Final", "Ubicación"]
-currentWorkingDirectory = "" if os.getcwd().split("\\")[-1] == "DiscordBot" else "DiscordBot/"
+cwd = "" if os.getcwd().split("\\")[-1] == "DiscordBot" else f".{os.sep}DiscordBot{os.sep}"
 staffRoles = [1159163038130245773]
 guildList = [1150748183106957352, 473511544454512642, 1158900225117794425]
 
@@ -20,8 +33,6 @@ guild3 = {'guildId': 1158900225117794425, 'botChannel': [1159056096753881198]}
 botId = 1157437526856962141
 
 weekdays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-
-mesesDict = {1:"Enero", 2:"Febrero", 3:"Marzo", 4:"Abril", 5:"Mayo", 6:"Junio", 7:"Julio", 8:"Agosto", 9:"Septiembre", 10:"Octubre", 11:"Noviembre", 12:"Diciembre"}
 
 mesesDict = {
             1:"Ene",
@@ -38,9 +49,14 @@ mesesDict = {
             12:"Dic"
             }
 
-def logs(func):
+hourPattern = re.compile(r"^[0-2][0-9]:[0-5][0-9]$")
+shortenedHourPattern = re.compile(r"^[0-2]{0,1}[0-9]$")
+lazyHourPattern = re.compile(r"^[0-9]:[0-5][0-9]$")
+veryLazyHourPattern = re.compile(r"^[0-2]{0,1}[0-9][0-5][0-9]$")
+
+#To improve, for the time being it redirects to the function and does nothing
+def debug(func):
     def wrapper(*args, **kwargs):
-        print(f'Función {func.__name__}')
         return func(*args, **kwargs)
     return wrapper
 
@@ -53,6 +69,7 @@ def splitTime(inputStr: str) -> str:
     string1 = f"{integer:03}"
     return f"{string1[:-2]}:{string1[-2:]}"
 
+@debug
 def backup(load: bool = False) -> bool:
     lista = [["database.db", "backups/temp.db"],
              ["backups/database-backup1.db", "database.db"],
@@ -60,11 +77,11 @@ def backup(load: bool = False) -> bool:
              ["backups/temp.db", "backups/database-backup2.db"]] if load else [["backups/database-backup1.db", "backups/database-backup2.db"],
                                                                                ["database.db", "backups/database-backup1.db"]]
     for backup in lista:
-        with sql.connect(currentWorkingDirectory + backup[0]) as db0:
-            with sql.connect(currentWorkingDirectory + backup[1]) as db1:
+        with sql.connect(cwd + backup[0]) as db0:
+            with sql.connect(cwd + backup[1]) as db1:
                 db0.backup(db1)
     if load: return True
-    print("Backup was created")
+    #debugger.debug("Backup was created")
     return True
 
 def intToStrDate(integer: int) -> str:
@@ -78,46 +95,19 @@ def parseToSQLParams(evento: dict, union: str = ", ") -> str:
         return f"'{param}'" if isinstance(param, str) else param
     return union.join(f"{element[0]} = {helper(element[1])}" for element in evento.items() if element[1] is not None)
 
+def argumenterParserComander(names: tuple[str], values: tuple) -> str:
+    a = " ".join(f"{name}:{value}" for name, value in zip(names, values) if value not in (None, ""))
+    return a + " " if a != "" else ""
+
 # Week calculator
 def fecha(*args) -> int:
     if len(args) != 3:
-        raise Exception(f"Expected 3 numbers for a date not {args}")
-    followingDate = [arg for arg in args]
-
-    if followingDate[1] == 0:
-        followingDate[1] = 12
-        followingDate[2] -= 1
-    month = {}
-    for i in range(1,13):
-        match i:
-            case 4 | 6 | 9 | 11:
-                month[i] = 30
-            case 2:
-                month[i] = 28
-            case other:
-                month[i] = 31
-    # Leap year handler
-    def yearToDays(year):
-        if year % 4 == 0:
-            return 366
-        return 365
-
+        raise Exception(f"Expected 3 numbers for a date not {len(args)} ({args})")
     now = datetime.datetime.now()
-    weeks = 0
-    # Counting days --> converting into weeks
-    dayCount = followingDate[0] - now.day
-    for i in range(now.month, followingDate[1]):
-        dayCount += month[i]
-    for i in range(followingDate[1], now.month):
-        dayCount -= month[i]
-    for i in range(now.year, followingDate[2]):
-        dayCount += yearToDays(i)
-    for i in range(followingDate[2], now.year):
-        dayCount -= yearToDays(i)
-    weeks = dayCount // 7 + 1
-    return(weeks)
+    then = datetime.datetime(args[2],args[1],args[0],now.hour,now.minute)
+    return (then - now).days // 7 + 1
 
-def procesarfecha(input: str) -> list[int]:
+def procesarFecha(input: str) -> list[int]:
     try:
         fecha = [int(string) for string in re.split(r"[^\d]", input) if string]
         now = datetime.datetime.now()
@@ -134,6 +124,15 @@ def procesarfecha(input: str) -> list[int]:
             else: fecha.append(now.year + 1)
         return fecha
     except: return False
+
+def procesarHora(hora):
+    if re.match(shortenedHourPattern, hora):
+        return intToStrDate(int(hora)*100)
+    if re.match(lazyHourPattern, hora):
+        return "0" + hora
+    if re.match(veryLazyHourPattern):
+        return intToStrDate(int(hora))
+    raise Exception('Hour format not contemplated')
 
 def parseToDict(lista: list) -> dict:
     return {clave:valor for clave, valor in zip(header, lista)}

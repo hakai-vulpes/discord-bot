@@ -3,7 +3,7 @@ import os, sys, asyncio, re
 from nextcord.ext import commands
 from keys import *
 from extras import *
-currentWorkingDirectory = "" if os.getcwd().split("\\")[-1] == "DiscordBot" else "DiscordBot/"
+cwd = "" if os.getcwd().split("\\")[-1] == "DiscordBot" else "DiscordBot/"
 
 backup()
 
@@ -13,7 +13,7 @@ intents.members = True
 extensions = []
 #Yo lo tengo ejecutando en una carpeta externa, así que tengo que incluir mi carpeta y la de otros
 
-for filename in os.listdir(currentWorkingDirectory + "cogs"):
+for filename in os.listdir(cwd + "cogs"):
     if filename.endswith(".py") and filename.capitalize()[0] == filename[0]:
         extensions.append("cogs." + filename[:-3])
 
