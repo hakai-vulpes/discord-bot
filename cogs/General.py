@@ -19,8 +19,7 @@ class General(commands.Cog):
         snitch.info(f"por {interaction.user.name}")
         print("Comando hello 1")
         await interaction.response.send_message("Buenas pendejo :P")
-    
-
+        
     @commands.Cog.listener()
     async def on_ready(self):
         print("The bot is running! :3\n")

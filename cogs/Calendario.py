@@ -183,8 +183,8 @@ class Calendario(commands.Cog):
     @commands.has_any_role(staffRoles)
     @nextcord.slash_command(name = 'eliminar', description = 'Elimina un evento del calendario', guild_ids = guildList) # help = 'Uso: !eliminar <índice (cronológicamente)>\nEjemplo: !eliminar 3, para eliminar el tercer evento más cercano')
     async def eliminar(self, interaction: Interaction, índice: int):
-        arguments = argumenterParserComander(('índice'),
-                                             (índice))
+        arguments = argumenterParserComander((('índice'),),
+                                             ((índice),))
         snitch.info(arguments + f"por {interaction.user.name}")
 
         await interaction.response.defer()

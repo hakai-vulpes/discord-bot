@@ -1,9 +1,11 @@
 import re, os, datetime, copy, functools, nextcord, pytz, logging
-from typing import Optional
 import sqlite3 as sql
 from nextcord.utils import MISSING
 from unidecode import unidecode
+from PIL import ImageFont
 from keys import *
+
+
 
 
 snitch = logging.getLogger("snitch")
@@ -137,6 +139,12 @@ def procesarHora(hora):
 def parseToDict(lista: list) -> dict:
     return {clave:valor for clave, valor in zip(header, lista)}
 
+font = ImageFont.truetype('DiscordFonts/gg sans Regular.ttf', 14)
+def titleFrontEndBullshit(index, month, day, txt, count):
+    (width, _), _ = font.font.getsize(f"{index}. {month} {day}  —  **{txt}**")
+    return width // 440
+    pass
+
 class AnnouncementView(nextcord.ui.View):
     def __init__(self, opciones, callback, timeout: float | None, auto_defer: bool = True, prevent_update: bool = True) -> None:
         super().__init__(timeout=timeout, auto_defer=auto_defer, prevent_update=prevent_update)
@@ -167,6 +175,6 @@ class EmailVerificationModal(nextcord.ui.Modal):
 
     async def callback(self, interaction: nextcord.Interaction):
         if not self.verificationField.value == self.token:
-            return await interaction.response.send_message("Intento de verificación fallido")
-        interaction.user
-        return await interaction.response.send_message("Verificación completada")
+            return await interaction.followup.send("Intento de verificación fallido")
+        #interaction.user
+        return await interaction.followup.send("Verificación completada")

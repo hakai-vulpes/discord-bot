@@ -1,4 +1,3 @@
-from typing import Optional
 import nextcord, datetime, asyncio, re
 
 from nextcord.interactions import Interaction
@@ -55,10 +54,12 @@ async def correo(interaction: nextcord.Interaction, email: str = ""):
 
     if not validate_email_syntax(email):
         return await interaction.response.send_message("Sintaxis de correo incorrecta.")
-    token = secrets.token_urlsafe(6)
+    
+    await interaction.response.defer()
+
+    token = secrets.token_urlsafe(10)
     await interaction.response.send_modal(EmailVerificationModal(token))
     await sendConfirmationEmail(email, token)
-    print(interaction)
 
 @bot.event
 async def on_ready():
