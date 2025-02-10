@@ -49,8 +49,11 @@ applications.
 
 ## Acknowledgments
 
-This project uses `python-dotenv`, which is licensed under the BSD 3-Clause License.
-See [python-dotenv GitHub](https://github.com/theskumar/python-dotenv) for more details.
+This project also uses the following libraries:
+
+- `nextcord.py`, which is licensed under the MIT License. See [nextcord.py GitHub](https://github.com/nextcord/nextcord) for more details.
+- `python-dotenv`, which is licensed under the BSD 3-Clause License. See [python-dotenv GitHub](https://github.com/theskumar/python-dotenv) for more details.
+- `Unidecode`, which is licensed under the GPL-2.0 license. See [Unidecode Github](https://github.com/avian2/unidecode) for more details.
 
 ## License
 
