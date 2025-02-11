@@ -325,12 +325,12 @@ class Calendario(commands.Cog):
                 start_time = process_date(
                     fecha_inicio or old_event.start_time.strftime('%d/%m/%Y'),
                     hora_inicio  or old_event.start_time.strftime('%H:%M')
-                )
+                ).astimezone(zoneinfo.ZoneInfo(timezone))
             if fecha_final or hora_final:
                 end_time = process_date(
                     fecha_final or old_event.end_time.strftime('%d/%m/%Y'),
                     hora_final  or old_event.end_time.strftime('%H:%M')
-                )
+                ).astimezone(zoneinfo.ZoneInfo(timezone))
                 
             if (start_time or old_event.start_time) > (end_time or old_event.end_time):
                 raise ValueError('Invalid time range. The event cannot start after it ends.')
