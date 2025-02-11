@@ -74,7 +74,7 @@ def process_date(
     
     date = fill_date(date)
     time = process_time(time)
-    return datetime.datetime(*date, *time)
+    return datetime.datetime(*date, *time).astimezone(zoneinfo.ZoneInfo(timezone))
 
 weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -194,9 +194,10 @@ class Calendario(commands.Cog):
         calendar_embed = nextcord.Embed(title='***CALENDARIO DE EVENTOS***', color=0xff6700)
         embed_list = list()
         # Events spanning multiple days are not yet supported
+        now = datetime.datetime.now().astimezone(zoneinfo.ZoneInfo(timezone))
         for thrice, event in enumerate(event for event in calendar if event.end_time.day - event.start_time.day == 0):
             embed_value = ''
-            timedelta = event.start_time - datetime.datetime.now().astimezone(zoneinfo.ZoneInfo(timezone))
+            timedelta = event.start_time - now
             start_time = event.start_time
             start, end = start_time.strftime('%H:%M'), event.end_time.strftime('%H:%M')
             weeks_until = timedelta.days // 7
@@ -325,12 +326,12 @@ class Calendario(commands.Cog):
                 start_time = process_date(
                     fecha_inicio or old_event.start_time.strftime('%d/%m/%Y'),
                     hora_inicio  or old_event.start_time.strftime('%H:%M')
-                ).astimezone(zoneinfo.ZoneInfo(timezone))
+                )
             if fecha_final or hora_final:
                 end_time = process_date(
                     fecha_final or old_event.end_time.strftime('%d/%m/%Y'),
                     hora_final  or old_event.end_time.strftime('%H:%M')
-                ).astimezone(zoneinfo.ZoneInfo(timezone))
+                )
                 
             if (start_time or old_event.start_time) > (end_time or old_event.end_time):
                 raise ValueError('Invalid time range. The event cannot start after it ends.')
