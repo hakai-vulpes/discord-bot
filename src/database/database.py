@@ -18,7 +18,7 @@ sql.register_converter("DATETIME", from_epoch)
 def file_entry_datetime(entry: os.DirEntry) -> datetime.datetime:
     try:
         name = entry.name
-        head, ext = os.path.splitext(name)
+        head, _ = os.path.splitext(name)
         sep_index = - head[::-1].index('_') - 1
         time = head[sep_index + 1:]
         return datetime.datetime.strptime(time, '%Y-%m-%dT%H%M')
@@ -59,9 +59,9 @@ class DatabaseAccessor:
                     'description TEXT, '
                     'start DATETIME, '
                     'end DATETIME, '
-                    'location text, '
+                    'location TEXT, '
                     'guild_id INTEGER, '
-                    'PRIMARY KEY (start, end, category, description, location, guild_id)'
+                    'PRIMARY KEY (guild_id, end, start, category, description, location)'
                 ') WITHOUT ROWID'
             )
 
