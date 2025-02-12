@@ -32,7 +32,7 @@ db = DatabaseAccessor(config['DB']['path'])
 # Add some helper functions
 def fill_date(date: str) -> tuple[int, int, int]:
     try:
-        fecha = [int(string) for string in re.split(r'[^\d]', date) if string]
+        fecha = [int(string) for string in re.split(r'[^\da-zA-Z]', date) if string]
         now = datetime.datetime.now()
         if len(fecha) == 1:
             if now.day <= fecha[0]: fecha.append(now.month)
@@ -193,29 +193,10 @@ class Calendario(commands.Cog):
         # this makes the boxes look good enough, but it is bad code.
         calendar_embed = nextcord.Embed(title='***CALENDARIO DE EVENTOS***', color=0xff6700)
         embed_list = list()
-        # Events spanning multiple days are not yet supported
-        now = datetime.datetime.now().astimezone(zoneinfo.ZoneInfo(timezone))
-        for thrice, event in enumerate(event for event in calendar if event.end_time.day - event.start_time.day == 0):
-            embed_value = ''
-            timedelta = event.start_time - now
-            start_time = event.start_time
-            start, end = start_time.strftime('%H:%M'), event.end_time.strftime('%H:%M')
-            weeks_until = timedelta.days // 7
-
-            if weeks_until == 0: # Red
-                embed_value = f'''```ml\n[{start}-{end}]\n  {unidecode(event.description.title())} ({weekdays[start_time.weekday()]})```'''
-            elif weeks_until == 1: # Orange
-                embed_value = f'''```prolog\n[{start}-{end}]\n  {unidecode(event.description.title())} ({weekdays[start_time.weekday()]})```'''
-            elif weeks_until == 2: # Yellow
-                embed_value = f'''```asciidoc\n[{start}-{end}]\n>  {event.description} ({weekdays[start_time.weekday()]}) :: ```'''
-            elif weeks_until > 2: # Green
-                embed_value = f'''```md\n[{start}-{end}]\n> {event.description} ({weekdays[start_time.weekday()]})```'''
-            else: # Gray
-                embed_value = f'''```ini\n#[{start}-{end}]\n #{event.description} ({weekdays[start_time.weekday()]})```'''
-            embedName = f'{thrice + 1}. {months[start_time.month - 1]} {start_time.day:02}  —  **{event.category}**'
-            embed_list.append([embedName, embed_value])
-            if thrice % 3 == 2:
-                pass
+        for index, event in enumerate(calendar):
+            title, value = event.prep_embed()
+            title = f'{index + 1}. ' + title
+            embed_list.append([title, value])
 
         # Count to consider automatic line breaking in event description
         # Old spaghetti code, can't bother fixing it
