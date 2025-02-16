@@ -12,6 +12,15 @@ from nextcord.ext import commands
 from src.utils.logs import commands_logger, parse_args
 from src.database import Event, DatabaseAccessor
 
+EMBED_VALUE_WIDTH_3 = 17
+EMBED_VALUE_WIDTH_2 = 26
+
+EMBED_TITLE_WIDTH_3 = 348
+EMBED_TITLE_WIDTH_2 = 530
+
+# Is the size that fits the best the size relationships in embeds
+DISCORD_FONT_SIZE = 32
+
 # Add main path to the path to access my libraries
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -79,6 +88,117 @@ def process_date(
 weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
+
+def count_lines_mono(text: str, width: int) -> int:
+    '''Count the number of lines in a monospaced text with a given width limit.'''
+    lines = 1
+    i = 0
+    word = 0
+    for letter in text:
+        if letter == '\n':
+            i = 0
+            word = 0
+            lines += 1
+            continue
+        
+        if letter == ' ':
+            word = 0
+            
+        if width == i:
+            if not word:
+                i = 1
+                lines += 1
+            else:
+                word += letter != ' '
+                if word > width:
+                    i = 1
+                    word = 1
+                    lines += 1
+
+                else:
+                    i = word
+                    lines += 1
+
+        else:
+            word += letter != ' '
+            i += 1
+    
+    return lines
+
+
+from PIL import ImageFont
+def get_font_size(font_path: str, text: str):
+    font = ImageFont.truetype(font_path, DISCORD_FONT_SIZE)
+    size = font.getbbox(text)
+    return size[2] - size[0]
+
+bold_rx = re.compile(r'(?<!\\)\*\*(.*?)\*\*')
+font_path = ['gg sans Regular.ttf', 'gg sans Bold.ttf']
+font_path = [os.path.join('fonts', path) for path in font_path]
+def count_lines(text: str, width: int) -> int:
+    '''Count the number of lines in a text with a given width limit.'''
+    # Collect the bold characters
+    end = 0
+    bold_characters: list[bool] = []
+    clean_text = []
+    while match := bold_rx.search(text, pos=end):
+        # Register bold segment and the segment just before
+        start = match.start()
+        bold_characters.extend([False] * (start - end))
+        clean_text.append(text[end:start])
+        end = match.end()
+        bold_characters.extend([True] * (end - start - 4))
+        clean_text.append(text[start+2:end-2])
+
+    # Last segment
+    bold_characters.extend([False] * (len(text) - end))
+    clean_text.append(text[end:])
+
+    clean_text = ''.join(clean_text)
+    text = text.replace('**', '')
+
+    # Count the lines
+    lines = 1
+    word = 0
+    i = 0
+    for b, letter in zip(bold_characters, text):
+        if letter == '\n':
+            i = 0
+            word = 0
+            lines += 1
+            continue
+        
+        letter_size = get_font_size(font_path[b], letter)
+        i += letter_size
+        if letter == ' ':
+            word = 0
+
+        if i > width:
+            if not word:
+                i = letter_size
+                lines += 1
+
+            else:
+                if letter != ' ':
+                    word += letter_size
+                    
+                if word > width:
+                    i = letter_size
+                    word = letter_size
+                    lines += 1
+
+                else:
+                    i = word
+                    lines += 1
+                    
+        elif letter != ' ':
+            word += letter_size
+
+    return lines
+
+TITLE_FILLER = '_'
+TITLE_FILLER_SIZE = get_font_size(font_path[False], TITLE_FILLER)
+TITLE_FILLER = '\\' + TITLE_FILLER # Escape the filler character
 
 class Calendario(commands.Cog):
     
@@ -198,58 +318,79 @@ class Calendario(commands.Cog):
             title = f'{index + 1}. ' + title
             embed_list.append([title, value])
 
-        # Count to consider automatic line breaking in event description
-        # Old spaghetti code, can't bother fixing it
-        name_lengths_list, name_lengths_list_extra, value_lenghts_list = [], [], []
-        linebreak_counter = 0
-        for index, name_value_list in enumerate(embed_list):
-            if index % 3 == 0 and index != 0:
-                linebreak_counter = 0
-                linebreak_counter += 0
-                linebreak_counter += max(value_lenghts_list)
-                for jndex, name_value_list_changer in enumerate(embed_list[index-3:index]):
-                    _, valueChanger = name_value_list_changer
-                    embed_list[jndex + index-3][1] = embed_list[jndex + index-3][1][:-3] + '\n ' * (linebreak_counter - (value_lenghts_list[jndex])) + '```'
-                    embed_list[jndex + index-3][0] = embed_list[jndex + index-3][0] + ' ' * 2 * (title_length - name_lengths_list_extra[jndex])+ '-' * (title_length - 1) * (max(name_lengths_list) - (name_lengths_list[jndex]))
-                name_lengths_list, name_lengths_list_extra, value_lenghts_list = [], [], []
-            if name_value_list[1]:
-                name, value = name_value_list
-            else:
-                continue
-            # Title
-            title_length = 37 if name_value_list in embed_list[(len(embed_list)-1)//3*3:] and len(embed_list) % 3 != 0 else 27
-            name_lengths_list.append(len(name)//title_length + 1)
-            name_lengths_list_extra.append(len(name)%title_length)
-            # Decription
-            character_counter = -1
-            linebreak_counter2 = 1
-            linelength = 29 if name_value_list in embed_list[(len(embed_list)-1)//3*3:] and len(embed_list) % 3 != 0 else 18
-            for word in re.split(' ', re.findall(r'[\n]+([\w\-\(\)>:# ]+)', value)[0]):
-                if len(word) <= linelength:
-                    character_counter += 1 + len(word)
-                    if character_counter > linelength:
-                        character_counter = len(word)
-                        linebreak_counter2 += 1
-                else:
-                    character_counter = len(word)
-                    linebreak_counter2 += 1
-                    while character_counter > linelength:
-                        character_counter -= linelength
-                        linebreak_counter2 += 1
-                    
-            value_lenghts_list.append(linebreak_counter2)
+        # Align the embeds
+        alligned_embeds = []
+        for row in range(0, len(embed_list), 3):
+            if row + 3 <= len(embed_list):
+                # Three elements in the row
+                title_lengths = [
+                    *map(
+                        lambda x: count_lines(x[0], EMBED_TITLE_WIDTH_3),
+                        embed_list[row:row+3]
+                    )
+                ]
+                value_lengths = [
+                    *map(
+                        lambda x: count_lines_mono(x[1], EMBED_VALUE_WIDTH_3),
+                        embed_list[row:row+3]
+                    )
+                ]
+                max_title_length = max(title_lengths)
+                max_value_length = max(value_lengths)
 
-        linebreak_counter = 0
-        linebreak_counter += 0
-        linebreak_counter += max(value_lenghts_list)
-        for jndex, name_value_list_changer in enumerate(embed_list[(len(embed_list)-1)//3*3:]):
-            _, valueChanger = name_value_list_changer
-            embed_list[jndex + (len(embed_list)-1)//3*3][1] = embed_list[jndex + (len(embed_list)-1)//3*3][1][:-3] + '\n ' * (linebreak_counter - (value_lenghts_list[jndex])) + '```'
-            embed_list[jndex + (len(embed_list)-1)//3*3][0] = embed_list[jndex + (len(embed_list)-1)//3*3][0] + ' ' * 2 * (title_length - name_lengths_list_extra[jndex]) + '-' * (title_length - 1) * (max(name_lengths_list) - (name_lengths_list[jndex]))
-        name_lengths_list, name_lengths_list_extra, value_lenghts_list = [], [], []
+                for i, embed in enumerate(embed_list[row:row+3]):
+                    if title_lengths[i] != max_title_length:
+                        embed[0] = (
+                            embed[0]
+                            + '\n' * (max_title_length - title_lengths[i])
+                            + TITLE_FILLER * (EMBED_TITLE_WIDTH_3//TITLE_FILLER_SIZE)
+                        )
+                    if value_lengths[i] != max_value_length:
+                        embed[1] = (
+                            embed[1][:-3] 
+                            + '\n ' * (max_value_length - value_lengths[i])
+                            + '```'
+                        )
+                    alligned_embeds.append(embed)
+                    
+            elif row + 2 == len(embed_list):
+                # Two element in the row
+                title_lengths = [
+                    *map(
+                        lambda x: count_lines(x[0], EMBED_TITLE_WIDTH_2),
+                        embed_list[row:row+2]
+                    )
+                ]
+                value_lengths = [
+                    *map(
+                        lambda x: count_lines_mono(x[1], EMBED_VALUE_WIDTH_2),
+                        embed_list[row:row+2]
+                    )
+                ]
+                max_title_length = max(title_lengths)
+                max_value_length = max(value_lengths)
+
+                for i, embed in enumerate(embed_list[row:row+2]):
+                    if title_lengths[i] != max_title_length:
+                        embed[0] = (
+                            embed[0]
+                            + '\n' * (max_title_length - title_lengths[i])
+                            + TITLE_FILLER * (EMBED_TITLE_WIDTH_2//TITLE_FILLER_SIZE)
+                        )
+                    if value_lengths[i] != max_value_length:
+                        embed[1] = (
+                            embed[1][:-3] 
+                            + '\n ' * (max_value_length - value_lengths[i])
+                            + '```'
+                        )
+                    alligned_embeds.append(embed)
+
+            else:
+                for embed in embed_list[row:]:
+                    alligned_embeds.append(embed)
 
         # Generate the embed
-        for thrice, name_value_list in enumerate(embed_list):
+        for thrice, name_value_list in enumerate(alligned_embeds):
             name, value = name_value_list
             calendar_embed.add_field(name=name, value=value, inline = True)
             if thrice % 3 == 2:
