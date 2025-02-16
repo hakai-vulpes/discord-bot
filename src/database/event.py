@@ -286,12 +286,10 @@ class Event:
             - now.replace(hour=0, minute=0, second=0, microsecond=0)
         ).days
         
-        title = f'{months[end_time.month - 1]} {end_time.day:02}  —  **{self.category}**'
         title = f'**{self.category}**'
 
         if duration > 14 and now < start_time:
             return '🔒 ' + title, self._gray_embed_value()
-
 
 
         if time_until > 14:
