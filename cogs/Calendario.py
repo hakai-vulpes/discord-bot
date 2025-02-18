@@ -312,7 +312,7 @@ class Calendario(commands.Cog):
         # Working with alignment in Discord is harder than centering a div
         # this makes the boxes look good enough, but it is bad code.
         calendar_embed = nextcord.Embed(title='***CALENDARIO DE EVENTOS***', color=0xff6700)
-        embed_list = list()
+        embed_list: list[str, str] = list()
         for index, event in enumerate(calendar):
             title, value = event.prep_embed()
             title = f'{index + 1}. ' + title
@@ -346,11 +346,10 @@ class Calendario(commands.Cog):
                             + TITLE_FILLER * (EMBED_TITLE_WIDTH_3//TITLE_FILLER_SIZE)
                         )
                     if value_lengths[i] != max_value_length:
-                        embed[1] = (
-                            embed[1][:-3] 
-                            + '\n ' * (max_value_length - value_lengths[i])
-                            + '```'
-                        )
+                        lines = embed[1].split('\n')
+                        lines.insert(-2, '\n ' * (max_value_length - value_lengths[i] - 1))
+                        embed[1] = '\n'.join(lines)
+                        
                     alligned_embeds.append(embed)
                     
             elif row + 2 == len(embed_list):
@@ -378,11 +377,10 @@ class Calendario(commands.Cog):
                             + TITLE_FILLER * (EMBED_TITLE_WIDTH_2//TITLE_FILLER_SIZE)
                         )
                     if value_lengths[i] != max_value_length:
-                        embed[1] = (
-                            embed[1][:-3] 
-                            + '\n ' * (max_value_length - value_lengths[i])
-                            + '```'
-                        )
+                        lines = embed[1].split('\n')
+                        lines.insert(-2, '\n ' * (max_value_length - value_lengths[i] - 1))
+                        embed[1] = '\n'.join(lines) 
+                        
                     alligned_embeds.append(embed)
 
             else:
