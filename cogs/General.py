@@ -58,18 +58,5 @@ class General(commands.Cog):
         await interaction.followup.send(f'Error del comando. ({error})')
 
 
-    # @nextcord.slash_command(
-    #     name = 'verificar',
-    #     description = 'Realizar la verificación del usuario',
-    #     guild_ids = guild_idx_list
-    # )
-    # async def verificar(self, interaction: Interaction, correo: str):
-    #     guild_id = interaction.guild.id
-    #     channel_id = interaction.channel.id
-    #     verification_channel_id = guilds_with_verification.get(guild_id)
-    #     if verification_channel_id == channel_id:
-    #         pass
-
-
 def setup(bot: commands.Bot):
     bot.add_cog(General(bot))
