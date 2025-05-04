@@ -1,0 +1,25 @@
+name: Deploy Bot
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to production server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd discord-bot
+          echo "🔁 Deploying new version..."
+          git pull
+          pip install -r requirements.txt
+          systemctl restart discord-bot
+          echo "✅ Bot restarted successfully via systemd"
