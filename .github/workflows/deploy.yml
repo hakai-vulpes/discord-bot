@@ -20,6 +20,7 @@ jobs:
           cd discord-bot
           echo "🔁 Deploying new version..."
           git pull
+          pip install --upgrade pip
           pip install -r requirements.txt
           systemctl restart --user discord-bot.service
           echo "✅ Bot restarted successfully via systemd"
